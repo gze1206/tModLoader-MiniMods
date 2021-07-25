@@ -1,10 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Terraria;
 using Terraria.GameInput;
 using Terraria.ModLoader;
@@ -15,15 +11,15 @@ using TerraUI.Objects;
 
 namespace MiniMods
 {
-    internal struct AccessorySlot
+    internal class AccessorySlot
     {
         public UIItemSlot equip, vanity, dye;
 
         public void Clone(AccessorySlot source)
         {
             equip.Item = source.equip.Item.Clone();
-            vanity.Item = source.equip.Item.Clone();
-            dye.Item = source.equip.Item.Clone();
+            vanity.Item = source.vanity.Item.Clone();
+            dye.Item = source.dye.Item.Clone();
         }
 
         public void Initialize(DrawHandler drawBG, DrawHandler drawDyeBG)
@@ -52,35 +48,13 @@ namespace MiniMods
                 scaleToInventory: true
             );
 
-            vanity.Partner = equip;
-            equip.BackOpacity = vanity.BackOpacity = dye.BackOpacity = .8f;
-
             equip.Item = new Item();
-            equip.Item.SetDefaults(0, true);
-
             vanity.Item = new Item();
-            vanity.Item.SetDefaults(0, true);
-            
             dye.Item = new Item();
+
+            equip.Item.SetDefaults(0, true);
+            vanity.Item.SetDefaults(0, true);
             dye.Item.SetDefaults(0, true);
-        }
-
-        public void CheckItemSame(AccessorySlot target, Action<PacketMessageType, Item> whenNotSame = null)
-        {
-            if (equip.Item.IsNotTheSameAs(target.equip.Item))
-            {
-                whenNotSame?.Invoke(PacketMessageType.EquipSlot, equip.Item);
-            }
-
-            if (vanity.Item.IsNotTheSameAs(target.vanity.Item))
-            {
-                whenNotSame?.Invoke(PacketMessageType.VanitySlot, vanity.Item);
-            }
-
-            if (dye.Item.IsNotTheSameAs(target.dye.Item))
-            {
-                whenNotSame?.Invoke(PacketMessageType.DyeSlot, dye.Item);
-            }
         }
 
         public void SetPosition(int rX, int rY, int xOffset)
@@ -128,18 +102,55 @@ namespace MiniMods
 
             if (clone == null) return;
 
-            for (int i = 0, max = MiniMods.ExtraAccSlotAmount; i < max; i++)
+            if (IsNeedSyncSlots(clone, ExtractEquip))
             {
-                clone.slots[i].CheckItemSame(slots[i], (msg, item) => SendItemPacket(msg, item, -1, player.whoAmI));
+                SendItemPacket(PacketMessageType.EquipSlot, ExtractEquip, -1, player.whoAmI);
+            }
+
+            if (IsNeedSyncSlots(clone, ExtractVanity))
+            {
+                SendItemPacket(PacketMessageType.VanitySlot, ExtractVanity, -1, player.whoAmI);
+            }
+
+            if (IsNeedSyncSlots(clone, ExtractDye))
+            {
+                SendItemPacket(PacketMessageType.DyeSlot, ExtractDye, -1, player.whoAmI);
             }
         }
 
-        internal void SendItemPacket(PacketMessageType type, Item item, int toWho, int fromWho)
+        internal bool IsNeedSyncSlots(MiniModsPlayer other, Func<AccessorySlot, UIItemSlot> extractor)
+        {
+            for (int i = 0, max = MiniMods.ExtraAccSlotAmount; i < max; i++)
+            {
+                var myItem = extractor(slots[i]).Item;
+                var otherItem = extractor(other.slots[i]).Item;
+
+                if (otherItem.IsNotTheSameAs(myItem))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        internal UIItemSlot ExtractEquip(AccessorySlot slot) => slot.equip;
+
+        internal UIItemSlot ExtractVanity(AccessorySlot slot) => slot.vanity;
+
+        internal UIItemSlot ExtractDye(AccessorySlot slot) => slot.dye;
+
+        internal void SendItemPacket(PacketMessageType type, Func<AccessorySlot, UIItemSlot> extractor, int toWho, int fromWho)
         {
             var packet = mod.GetPacket();
             packet.Write((byte)type);
             packet.Write((byte)player.whoAmI);
-            ItemIO.Send(item, packet);
+
+            for (int i = 0, max = MiniMods.ExtraAccSlotAmount; i < max; i++)
+            {
+                ItemIO.Send(extractor(slots[i]).Item, packet);
+            }
+
             packet.Send(toWho, fromWho);
         }
 
@@ -165,6 +176,7 @@ namespace MiniMods
 
             for (int i = 0, max = MiniMods.ExtraAccSlotAmount; i < max; i++)
             {
+                slots[i] = new AccessorySlot();
                 slots[i].Initialize(DrawSlotBG, DrawSlotDyeBG);
             }
         }
@@ -290,7 +302,6 @@ namespace MiniMods
             if (Main.mapEnabled)
             {
                 int adjustY = 600;
-
 
                 if (Main.player[Main.myPlayer].ExtraAccessorySlotsShouldShow)
                 {

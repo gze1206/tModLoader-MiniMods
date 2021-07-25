@@ -2,10 +2,10 @@ using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
 using System.IO;
 using Terraria;
+using Terraria.ID;
 using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
 using Terraria.UI;
-using Terraria.ID;
 
 namespace MiniMods
 {
@@ -54,8 +54,6 @@ namespace MiniMods
             var player = reader.ReadByte();
             var modPlayer = Main.player[player].GetModPlayer<MiniModsPlayer>();
 
-            Logger.Debug($"Handle packet : {msg}");
-
             switch (msg)
             {
                 case PacketMessageType.All:
@@ -65,56 +63,63 @@ namespace MiniMods
                         slot.equip.Item = ItemIO.Receive(reader);
                         slot.vanity.Item = ItemIO.Receive(reader);
                         slot.dye.Item = ItemIO.Receive(reader);
+                    }
 
-                        if (Main.netMode == NetmodeID.Server)
+                    if (Main.netMode == NetmodeID.Server)
+                    {
+                        var packet = GetPacket();
+                        packet.Write((byte)PacketMessageType.All);
+                        packet.Write(player);
+
+                        for (int i = 0; i < ExtraAccSlotAmount; i++)
                         {
-                            var packet = GetPacket();
-                            packet.Write((byte)PacketMessageType.All);
-                            packet.Write(player);
+                            var slot = modPlayer.slots[i];
 
                             ItemIO.Send(slot.equip.Item, packet);
                             ItemIO.Send(slot.vanity.Item, packet);
                             ItemIO.Send(slot.dye.Item, packet);
-                            packet.Send(-1, whoAmI);
                         }
+
+                        packet.Send(-1, whoAmI);
                     }
                     break;
+
                 case PacketMessageType.EquipSlot:
                     for (int i = 0; i < ExtraAccSlotAmount; i++)
                     {
-                        var slot = modPlayer.slots[i];
-                        slot.equip.Item = ItemIO.Receive(reader);
+                        modPlayer.slots[i].equip.Item = ItemIO.Receive(reader);
+                    }
 
-                        if (Main.netMode == NetmodeID.Server)
-                        {
-                            modPlayer.SendItemPacket(PacketMessageType.EquipSlot, slot.equip.Item, -1, whoAmI);
-                        }
+                    if (Main.netMode == NetmodeID.Server)
+                    {
+                        modPlayer.SendItemPacket(PacketMessageType.EquipSlot, modPlayer.ExtractEquip, -1, whoAmI);
                     }
                     break;
+
                 case PacketMessageType.VanitySlot:
                     for (int i = 0; i < ExtraAccSlotAmount; i++)
                     {
-                        var slot = modPlayer.slots[i];
-                        slot.vanity.Item = ItemIO.Receive(reader);
+                        modPlayer.slots[i].vanity.Item = ItemIO.Receive(reader);
+                    }
 
-                        if (Main.netMode == NetmodeID.Server)
-                        {
-                            modPlayer.SendItemPacket(PacketMessageType.VanitySlot, slot.vanity.Item, -1, whoAmI);
-                        }
+                    if (Main.netMode == NetmodeID.Server)
+                    {
+                        modPlayer.SendItemPacket(PacketMessageType.VanitySlot, modPlayer.ExtractVanity, -1, whoAmI);
                     }
                     break;
+
                 case PacketMessageType.DyeSlot:
                     for (int i = 0; i < ExtraAccSlotAmount; i++)
                     {
-                        var slot = modPlayer.slots[i];
-                        slot.dye.Item = ItemIO.Receive(reader);
+                        modPlayer.slots[i].dye.Item = ItemIO.Receive(reader);
+                    }
 
-                        if (Main.netMode == NetmodeID.Server)
-                        {
-                            modPlayer.SendItemPacket(PacketMessageType.DyeSlot, slot.dye.Item, -1, whoAmI);
-                        }
+                    if (Main.netMode == NetmodeID.Server)
+                    {
+                        modPlayer.SendItemPacket(PacketMessageType.DyeSlot, modPlayer.ExtractDye, -1, whoAmI);
                     }
                     break;
+
                 default:
                     Logger.Error($"[MiniMods - Extra Acc Slots] Unknown packet type! : {msg}");
                     break;

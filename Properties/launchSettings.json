@@ -8,6 +8,7 @@
     "TerrariaServer": {
       "commandName": "Executable",
       "executablePath": "$(tMLServerPath)",
+      "commandLineArgs": "-tmlsavedirectory \"C:\\Users\\ggzzz\\OneDrive\\臾몄꽌\\My Games\\Terraria\\ModLoader-Server\"",
       "workingDirectory": "$(TerrariaSteamPath)"
     }
   }

@@ -96,6 +96,14 @@ namespace MiniMods
             }
         }
 
+        public override void OnEnterWorld(Player player)
+        {
+            if (Main.LocalPlayer == player)
+            {
+                Main.LocalPlayer.team = ModContent.GetInstance<ServerConfig>().DefaultPlayerTeam;
+            }
+        }
+
         public override void SendClientChanges(ModPlayer clientPlayer)
         {
             var clone = clientPlayer as MiniModsPlayer;
@@ -178,6 +186,11 @@ namespace MiniMods
             {
                 slots[i] = new AccessorySlot();
                 slots[i].Initialize(DrawSlotBG, DrawSlotDyeBG);
+            }
+
+            if (player.TeamChangeAllowed())
+            {
+                player.team = 1;
             }
         }
 

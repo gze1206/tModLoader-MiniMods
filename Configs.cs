@@ -34,6 +34,10 @@ namespace MiniMods
         [ReloadRequired]
         public int ExtraAccSlotAmount;
 
+        [DefaultValue(1)]
+        [ReloadRequired]
+        public int DefaultPlayerTeam;
+
         [OnDeserialized]
         internal void OnDeserialized(StreamingContext context)
         {

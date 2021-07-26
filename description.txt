@@ -1,2 +1,3 @@
 - Cursor Scale
 - Extra accessories slots
+- Player auto join to team
